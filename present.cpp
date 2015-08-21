@@ -16,16 +16,40 @@ GLFWwindow* window;
 #define swap(a, b) (a) = (a) ^ (b), (b) = (a) ^ (b), (a) = (a) ^ (b)
 #define PI 3.14159265358979323846
 
+int window_width  = 1024;
+int window_height = 768;
 int decoration    = 1;
 int fullscreen    = 0;
 int resizable     = 1;
-int window_width  = 1024;
-int window_height = 768;
-
-const char *image_file  = "texture.png";
 
 double window_ratio = window_height * 1.0 / window_width;
 int run = 1;
+
+extern struct Picture{
+  int width;
+  int	height;
+  int bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */ 
+  unsigned char pixel_data[1536 * 1536 * 3 + 1];
+} picture;
+
+extern char *vertex_shader;
+extern char *fragment_shader;
+
+GLuint LoadTextureFromMemory(const unsigned char *image_buffer, int image_width, int image_height, int image_channels) {
+	GLuint texture;
+	glGenTextures(1, &texture);
+
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image_width, image_height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_buffer);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	return texture;
+}
 
 int Digit(int n) {
 	int i = 0;
@@ -41,7 +65,7 @@ void OptParse(char** argv) {
 	optparse_init(&options, argv);
 	int option;
 
-	while((option = optparse(&options, "dfrw: i:h")) != -1) {
+	while((option = optparse(&options, "dfrw: h")) != -1) {
 		switch(option) {
 			case 'd':
 				decoration = 0;
@@ -58,9 +82,6 @@ void OptParse(char** argv) {
 				window_ratio = window_height * 1.0 / window_width;
 				break;
 
-			case 'i':
-				image_file = options.optarg;
-				break;
 			case 'h':
 				printf(
 "None\n");
@@ -100,7 +121,7 @@ int InitGL() {
 	glfwWindowHint(GLFW_DECORATED, decoration && !fullscreen);
 	glfwWindowHint(GLFW_RESIZABLE, resizable && !fullscreen);
 
-	window = glfwCreateWindow(window_width, window_height, "Mandelbrot-set", fullscreen ? glfwGetPrimaryMonitor() : NULL, NULL);
+	window = glfwCreateWindow(window_width, window_height, "present", fullscreen ? glfwGetPrimaryMonitor() : NULL, NULL);
 	if(window == NULL) {
 		fprintf(stderr, "Failed to open GLFW window.\n");
 		glfwTerminate();
@@ -127,7 +148,8 @@ void Render() {
 	glGenVertexArrays(1, &VertexArrayID);
 	glBindVertexArray(VertexArrayID);
 
-	GLuint programID = LoadShaders("vertex.glsl", "fragment.glsl", "geometry.glsl");
+//	GLuint programID = LoadShader("vertex.glsl", "fragment.glsl");
+	GLuint programID = LoadShaderFromString(vertex_shader, fragment_shader);
 
 	static const GLfloat g_vertex_buffer_data[] = {
 		-1.0f, -1.0f, 0.0f,
@@ -143,9 +165,7 @@ void Render() {
 
 	GLuint textureID = glGetUniformLocation(programID, "texture");
 
-	GLuint texture = LoadTexture(image_file, NULL, NULL, 4);
-
-
+	GLuint texture = LoadTextureFromMemory(picture.pixel_data, 1536, 1536, 3);
 
 	do {
 		glClear(GL_COLOR_BUFFER_BIT);

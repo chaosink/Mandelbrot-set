@@ -7,30 +7,35 @@ in VertexData {
 	vec2 uv;
 } vertexIn;
 
+uniform sampler2D texture;
 uniform vec3 iResolution;
 uniform float iGlobalTime;
 
-void Mandelbrot(out vec4 fragColor, in vec2 fragCoord)
-{
-	vec2 position = -1.0 + 2.0 * fragCoord.xy / iResolution.xy;
-	position.x *= iResolution.x / iResolution.y;
+void Mandelbrot( out vec4 fragColor, in vec2 fragCoord )
+{	
+	vec2 uv = fragCoord.xy / iResolution.xy;
+	uv -= 0.5;
+	uv.x *= iResolution.x / iResolution.y;
+	uv *= 3.0;
 
-	float tz = 0.5 - 0.5 * cos(0.225 * iGlobalTime);
-    float zoo = pow(0.5, 13.0 * tz);
-	vec2 c = position;// / zoo;// + vec2(-0.05, 0.6805);
-	vec2 z = vec2(0.0);
+	vec2 s = uv;
+	vec2 prevUv = uv;
+	
 
-	float m2 = 0.0;
-	int i;
-	for(i = 0; i < 256; i++) {
-		if(m2 > 4) break;
-		z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + c;
-		m2 = dot(z, z);
+	float lim = 5.0 * (1.0 - cos(iGlobalTime));
+	
+	for (int i = 0; i < 32; i++)
+	{
+		if (i > int(floor(lim)) || abs(uv.x) + abs(uv.x) > 16384.0)
+			break;
+
+		prevUv = uv;
+		uv = vec2(uv.x * uv.x - uv.y * uv.y, 2.0 * uv.x * uv.y) + s;
 	}
 
-	float dist = sqrt(m2); 
-	vec3 col = vec3(1.0 - i / (20.0 * sin(iGlobalTime) + 21));
-	fragColor = vec4(col, 1.0);
+	uv = mix(prevUv, uv, fract(lim)) * 0.3333 + 0.5;
+	 
+	fragColor = texture2D(texture, uv * vec2(1, -1));
 }
 
 void main() {
