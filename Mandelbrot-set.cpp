@@ -135,9 +135,20 @@ void Render() {
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
 
-
+	float offset_x = 0;
+	float offset_y = 0;
+	float zoom = 1;
 
 	do {
+		if(glfwGetKey(window, GLFW_KEY_LEFT ) == GLFW_PRESS) offset_x -= zoom * 0.01; 
+		if(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) offset_x += zoom * 0.01;
+		if(glfwGetKey(window, GLFW_KEY_DOWN ) == GLFW_PRESS) offset_y -= zoom * 0.01;
+		if(glfwGetKey(window, GLFW_KEY_UP   ) == GLFW_PRESS) offset_y += zoom * 0.01;
+		if(glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS) zoom *= 0.9;
+		if(glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS) zoom /= 0.9;
+		
+		printf("%f %f %f\n", offset_x, offset_y, zoom);
+
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		glUseProgram(programID);
@@ -153,6 +164,10 @@ void Render() {
 			(void*)0  // array buffer offset
 		);
 
+		glUniform1f(glGetUniformLocation(programID, "offset_x"), offset_x);
+		glUniform1f(glGetUniformLocation(programID, "offset_y"), offset_y);
+		glUniform1f(glGetUniformLocation(programID, "zoom"), zoom);
+
 		glUniform1f(glGetUniformLocation(programID, "iGlobalTime"), glfwGetTime());
 		glUniform3f(glGetUniformLocation(programID, "iResolution"), window_width, window_height, 0);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -165,6 +180,7 @@ void Render() {
 		double time = glfwGetTime();
 		while(!run) glfwPollEvents();
 		glfwSetTime(time);
+
 	} while(glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && !glfwWindowShouldClose(window));
 
 
