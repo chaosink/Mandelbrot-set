@@ -116,6 +116,8 @@ int InitGL() {
 	return 0;
 }
 
+
+
 void Render() {
 	GLuint VertexArrayID;
 	glGenVertexArrays(1, &VertexArrayID);
@@ -134,6 +136,10 @@ void Render() {
 	glGenBuffers(1, &vertexbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+
+	FILE *out = fopen("raw_video", "wb");
+	GLbyte *frame[2000];
+	int frame_count = 0;
 
 	float offset_x = 0;
 	float offset_y = 0;
@@ -181,9 +187,13 @@ void Render() {
 		while(!run) glfwPollEvents();
 		glfwSetTime(time);
 
+		frame[frame_count] = new GLbyte[window_width * window_height * 3];
+		glReadPixels(0, 0, window_width, window_height, GL_RGB, GL_UNSIGNED_BYTE, frame[frame_count++]);
+
 	} while(glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && !glfwWindowShouldClose(window));
 
-
+	for(int i = 0; i < frame_count; i++) fwrite(frame[i], window_width * window_height * 3, 1, out);
+//	printf("%d %d %d\n", data.size, data.sampling_rate, frame_count);
 
 	glDeleteBuffers(1, &vertexbuffer);
 	glDeleteVertexArrays(1, &VertexArrayID);
